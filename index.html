@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IA - Evolução dos Prompts · Prompt sem manual</title>
+<meta name="description" content="Guia interativo: como pedir ao Claude sem manual de estagiário. Pedido, contexto, exemplo e esforço, conferido contra a documentação oficial.">
+<style>
+:root{
+  /* Paleta: verde e laranja (principais), neutras e apoio */
+  --bg:#161A17; --bg2:#11351D; --card:#29312D; --card2:#2A3F33; --line:#505A55;
+  --ink:#F2F6F3; --mute:#BDC7C6;
+  --g1:#35B65F; --g2:#84CE9D; --o1:#EB9136; --o2:#EDB277; --y:#FCDC5A; --ok:#35B65F; --bad:#E73A35; --bad-t:#FF8F8A; --blue:#3B83E4; --blue-t:#8DB8F0;
+  --grad:linear-gradient(120deg,var(--g1),var(--o1) 60%,var(--o2));
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;overflow-x:hidden}
+#net{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.55}
+.glow{position:fixed;border-radius:50%;filter:blur(90px);z-index:0;pointer-events:none;opacity:.28;animation:drift 18s ease-in-out infinite alternate}
+.g1{width:420px;height:420px;background:var(--o1);top:-120px;left:-80px}
+.g2{width:380px;height:380px;background:var(--g1);bottom:-120px;right:-60px;animation-delay:-8s}
+@keyframes drift{to{transform:translate(60px,40px) scale(1.15)}}
+.wrap{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:0 20px 80px}
+a{color:var(--g1)}
+:focus-visible{outline:2px solid var(--g1);outline-offset:3px;border-radius:6px}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:24px;align-items:center;padding:56px 0 24px}
+.kicker{display:inline-flex;gap:8px;align-items:center;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--g1);font-weight:600}
+.kicker i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 var(--ok);animation:ping 2s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 10px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.serie{margin:12px 0 0;font-size:clamp(34px,6vw,60px);font-weight:800;line-height:1.05;letter-spacing:-.02em;color:var(--o2)}
+h1{font-size:clamp(20px,3.4vw,30px);line-height:1.2;margin:10px 0 14px;letter-spacing:-.01em}
+h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;background-size:200% 100%;animation:shine 6s linear infinite}
+@keyframes shine{to{background-position:200% 0}}
+.lead{color:var(--mute);font-size:18px;max-width:52ch}
+.hero-art{display:flex;justify-content:center}
+.hero-art svg{width:100%;max-width:340px;height:auto}
+.orbit{transform-origin:200px 200px;animation:spin 22s linear infinite}
+.orbit2{animation-duration:34s;animation-direction:reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+.core{animation:breathe 3.4s ease-in-out infinite;transform-origin:200px 200px}
+@keyframes breathe{50%{transform:scale(1.08)}}
+
+/* nav */
+nav.tabs{position:sticky;top:0;z-index:5;background:linear-gradient(var(--bg) 70%,transparent);padding:12px 0 18px;margin:0 -20px;padding-left:20px;padding-right:20px}
+.tablist{display:flex;gap:8px;overflow-x:auto;padding:4px 2px;scrollbar-width:thin}
+.tab{flex:0 0 auto;border:1px solid var(--line);background:rgba(41,49,45,.85);color:var(--ink);padding:10px 16px;border-radius:999px;font:600 14px inherit;font-family:inherit;cursor:pointer;display:flex;gap:8px;align-items:center;transition:.2s;backdrop-filter:blur(6px)}
+.tab:hover{border-color:var(--g1);transform:translateY(-1px)}
+.tab[aria-selected="true"]{background:var(--grad);color:#161A17;border-color:transparent}
+.tab b{font-size:12px;opacity:.7}
+
+/* panels */
+.panel{display:none;animation:rise .45s ease both}
+.panel.on{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}}
+h2{font-size:clamp(26px,4vw,36px);margin:8px 0 6px;letter-spacing:-.01em}
+.sub{color:var(--mute);margin:0 0 22px;max-width:62ch}
+.card{background:linear-gradient(160deg,var(--card),var(--bg2));border:1px solid var(--line);border-radius:18px;padding:22px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.card h3{margin:0 0 6px;font-size:19px}
+.card p{margin:0;color:var(--mute)}
+.num{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:var(--grad);color:#161A17;font-weight:800;margin-bottom:12px}
+.hover{transition:.25s}
+.hover:hover{transform:translateY(-4px);border-color:var(--o1);box-shadow:0 12px 40px -18px var(--o1)}
+
+/* accordion */
+.acc{display:grid;gap:10px}
+.acc details{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:.2s}
+.acc details[open]{border-color:var(--g1);background:var(--card2)}
+.acc summary{list-style:none;cursor:pointer;padding:16px 18px;display:flex;gap:12px;align-items:center;font-weight:600}
+.acc summary::-webkit-details-marker{display:none}
+.acc summary::after{content:"+";margin-left:auto;font-size:22px;color:var(--g1);transition:.2s}
+.acc details[open] summary::after{transform:rotate(45deg)}
+.acc .body{padding:0 18px 18px;color:var(--mute)}
+.acc .body p{margin:0 0 8px}
+.badge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.ok{background:rgba(53,182,95,.18);color:var(--g2)}
+.part{background:rgba(252,220,90,.16);color:var(--y)}
+.no{background:rgba(231,58,53,.2);color:var(--bad-t)}
+.op{background:rgba(59,131,228,.22);color:var(--blue-t)}
+code{font-family:Consolas,"Courier New",monospace;background:rgba(53,182,95,.15);color:var(--g2);padding:1px 6px;border-radius:6px;font-size:.92em}
+.quote{border-left:3px solid var(--o1);padding:4px 14px;margin:10px 0;color:var(--ink);background:rgba(235,145,54,.1);border-radius:0 10px 10px 0}
+
+/* formula */
+.stack{display:grid;gap:12px;margin-top:6px}
+.piece{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;opacity:.35;transform:translateX(-10px);transition:.5s}
+.piece.show{opacity:1;transform:none}
+.piece .tag{font-weight:800;font-size:13px;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;border-radius:10px;color:#161A17}
+.t1{background:var(--g1)}.t2{background:var(--o1)}.t3{background:var(--o2)}.t4{background:var(--y)}
+.piece p{margin:0}
+.ctrl{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:10px 16px;border-radius:12px;font:600 14px inherit;font-family:inherit;cursor:pointer;transition:.2s}
+.btn:hover{border-color:var(--g1)}
+.btn.pri{background:var(--grad);color:#161A17;border-color:transparent}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ba .card{min-height:150px}
+.ba .before{border-color:rgba(231,58,53,.55)}
+.ba .after{border-color:rgba(53,182,95,.6)}
+.lab{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;display:block}
+.before .lab{color:var(--bad-t)}.after .lab{color:var(--ok)}
+.hl{background:rgba(231,58,53,.24);border-radius:4px;padding:0 3px}
+
+/* effort */
+.levels{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:18px}
+.lvl{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:14px 6px;border-radius:14px;cursor:pointer;font:700 14px "Consolas",monospace;transition:.2s;text-align:center}
+.lvl:hover{border-color:var(--g1)}
+.lvl[aria-pressed="true"]{background:var(--grad);color:#161A17;border-color:transparent;transform:translateY(-3px)}
+.gauge{height:12px;border-radius:99px;background:var(--bg2);border:1px solid var(--line);overflow:hidden;margin:8px 0 14px}
+.gauge i{display:block;height:100%;width:20%;background:var(--grad);border-radius:99px;transition:width .6s cubic-bezier(.2,.9,.3,1)}
+.meters{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.meter small{color:var(--mute);display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+.meter .gauge{margin:6px 0 0}
+.note{font-size:14px;color:var(--mute);margin-top:12px}
+
+/* diagnose */
+.diag{display:grid;gap:10px}
+.opt{text-align:left;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:14px 16px;border-radius:14px;font:600 15px inherit;font-family:inherit;cursor:pointer;transition:.2s;display:flex;gap:10px;align-items:center}
+.opt:hover{border-color:var(--g1);transform:translateX(4px)}
+.opt[aria-pressed="true"]{border-color:var(--o1);background:var(--card2)}
+.res{margin-top:14px;min-height:96px}
+.res .card{animation:rise .4s ease both}
+
+/* checklist */
+.chk{display:grid;gap:8px}
+.chk label{display:flex;gap:12px;align-items:center;padding:14px 16px;background:var(--card);border:1px solid var(--line);border-radius:14px;cursor:pointer;transition:.2s}
+.chk label:hover{border-color:var(--g1)}
+.chk input{width:20px;height:20px;accent-color:#35B65F}
+.chk label:has(input:checked){border-color:var(--ok);background:rgba(53,182,95,.12)}
+.bar{height:10px;background:var(--bg2);border:1px solid var(--line);border-radius:99px;overflow:hidden;margin:14px 0 6px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--g1),var(--g2));transition:width .4s}
+
+.src li{margin:6px 0;color:var(--mute)}
+.src a{word-break:break-all}
+footer{color:var(--mute);font-size:13px;text-align:center;padding:30px 0 0}
+
+@media (max-width:760px){
+  .hero{grid-template-columns:1fr;padding-top:32px}.hero-art{order:-1}.hero-art svg{max-width:220px}
+  .grid3,.grid2,.ba,.meters{grid-template-columns:1fr}
+  .levels{grid-template-columns:repeat(5,1fr);gap:5px}
+  .lvl{font-size:12px;padding:12px 2px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<canvas id="net" aria-hidden="true"></canvas>
+<div class="glow g1" aria-hidden="true"></div><div class="glow g2" aria-hidden="true"></div>
+
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <span class="kicker"><i></i> Guia interativo · IA</span>
+      <p class="serie">IA - Evolução dos Prompts</p>
+      <h1>Prompt <span>sem manual</span></h1>
+      <p class="lead">Os modelos atuais planejam e conferem sozinhos. Aprenda a pedir pelo resultado, com contexto e exemplo, e a escolher o esforço com critério.</p>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <svg viewBox="0 0 400 400">
+        <defs>
+          <radialGradient id="rg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#EB9136"/><stop offset="1" stop-color="#35B65F" stop-opacity=".2"/></radialGradient>
+          <linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#35B65F"/><stop offset="1" stop-color="#EB9136"/></linearGradient>
+        </defs>
+        <circle cx="200" cy="200" r="150" fill="none" stroke="#505A55" stroke-dasharray="3 7"/>
+        <circle cx="200" cy="200" r="100" fill="none" stroke="#505A55" stroke-dasharray="3 7"/>
+        <g class="orbit"><circle cx="350" cy="200" r="9" fill="#35B65F"/><circle cx="125" cy="330" r="7" fill="#EB9136"/><circle cx="125" cy="70" r="6" fill="#FCDC5A"/></g>
+        <g class="orbit orbit2"><circle cx="300" cy="200" r="7" fill="#3B83E4"/><circle cx="150" cy="113" r="6" fill="#84CE9D"/><circle cx="150" cy="287" r="8" fill="#EDB277"/></g>
+        <g class="core"><circle cx="200" cy="200" r="56" fill="url(#rg)"/><circle cx="200" cy="200" r="56" fill="none" stroke="url(#lg)" stroke-width="3"/>
+          <path d="M178 200h44M200 178v44M184 184l32 32M216 184l-32 32" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".9"/></g>
+      </svg>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Seções do guia">
+    <div class="tablist" role="tablist">
+      <button class="tab" role="tab" id="t-visao" aria-controls="p-visao" aria-selected="true"><b>01</b> O que mudou</button>
+      <button class="tab" role="tab" id="t-formula" aria-controls="p-formula" aria-selected="false" tabindex="-1"><b>02</b> A fórmula</button>
+      <button class="tab" role="tab" id="t-esforco" aria-controls="p-esforco" aria-selected="false" tabindex="-1"><b>03</b> Esforço</button>
+      <button class="tab" role="tab" id="t-errou" aria-controls="p-errou" aria-selected="false" tabindex="-1"><b>04</b> Errou?</button>
+      <button class="tab" role="tab" id="t-fontes" aria-controls="p-fontes" aria-selected="false" tabindex="-1"><b>05</b> Checagem de fatos</button>
+      <button class="tab" role="tab" id="t-check" aria-controls="p-check" aria-selected="false" tabindex="-1"><b>06</b> Checklist</button>
+    </div>
+  </nav>
+
+  <main>
+  <!-- 01 -->
+  <section class="panel on" id="p-visao" role="tabpanel" aria-labelledby="t-visao">
+    <h2>O manual de estagiário envelheceu</h2>
+    <p class="sub">Três mudanças resumem o que o vídeo propõe. Clique em cada uma para ver o que a documentação oficial da Anthropic confirma.</p>
+    <div class="grid3" style="margin-bottom:22px">
+      <div class="card hover"><div class="num">1</div><h3>Prompt enxuto</h3><p>Objetivo e resultado, em vez de uma lista de regras.</p></div>
+      <div class="card hover"><div class="num">2</div><h3>Pedir, contextualizar, mostrar</h3><p>O que quer, o que só você sabe e um exemplo.</p></div>
+      <div class="card hover"><div class="num">3</div><h3>Esforço com critério</h3><p>Padrão na maioria dos casos; subir só com motivo.</p></div>
+    </div>
+    <div class="acc">
+      <details open><summary><span class="badge ok">Confirmado</span> Prompt gigante e ênfase em excesso pioram</summary>
+        <div class="body"><p>Modelos recentes respondem mais ao que está no prompt e podem "exagerar". A documentação manda trocar <code>CRITICAL: You MUST use…</code> por <code>Use… when…</code> e remover instruções do tipo "na dúvida, use".</p></div></details>
+      <details><summary><span class="badge ok">Confirmado</span> Seja claro e explique o motivo</summary>
+        <div class="body"><p>Teste sugerido: mostre o prompt a um colega com pouco contexto. Se ele se confundir, o modelo também.</p><p>Explicar o <em>porquê</em> ("o texto será lido por um leitor de voz") funciona melhor que "NUNCA use reticências": o modelo generaliza a partir da explicação.</p></div></details>
+      <details><summary><span class="badge part">Parcial</span> "Não precisa de papel"</summary>
+        <div class="body"><p>A documentação <b>recomenda</b> definir um papel no system prompt ("even a single sentence makes a difference"), mas não exige. É opcional e barato, não proibido.</p></div></details>
+      <details><summary><span class="badge op">Opinião do autor</span> "PRD não é mais necessário"</summary>
+        <div class="body"><p>Não aparece na documentação. É a experiência do autor do vídeo; teste no seu caso.</p></div></details>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="panel" id="p-formula" role="tabpanel" aria-labelledby="t-formula" hidden>
+    <h2>A fórmula: pedido, contexto, exemplo</h2>
+    <p class="sub">Monte o prompt peça por peça e veja a diferença entre o manual antigo e o pedido atual.</p>
+    <div class="ctrl"><button class="btn pri" id="montar" type="button">▶ Montar o prompt</button><button class="btn" id="zerar" type="button">Reiniciar</button></div>
+    <div class="stack" id="stack">
+      <div class="piece"><span class="tag t1">Pedido</span><p>Transforme esta palestra em 10 posts para o Instagram da clínica.</p></div>
+      <div class="piece"><span class="tag t2">Contexto</span><p>O público são mulheres de 40 a 60 anos que têm medo de dentista.</p></div>
+      <div class="piece"><span class="tag t3">Exemplo</span><p>Anexei 3 posts que tiveram muitos comentários; siga esse tom.</p></div>
+      <div class="piece"><span class="tag t4">Fecho</span><p>Se algo não estiver claro, pergunte antes de começar.</p></div>
+    </div>
+    <h2 style="margin-top:34px;font-size:24px">Antes e depois</h2>
+    <div class="ba">
+      <div class="card before"><span class="lab">Antes · manual</span><p>Você é um <span class="hl">especialista sênior</span> em marketing. Siga <span class="hl">15 regras</span>: seja <span class="hl">detalhado</span>, seja <span class="hl">conciso</span>, tom acolhedor, até 3 emojis, sem jargão… Gere posts.</p></div>
+      <div class="card after"><span class="lab">Depois · resultado + contexto</span><p>Transforme esta palestra em 10 posts para o Instagram da clínica. Público: mulheres de 40 a 60 anos com medo de dentista. Anexei 3 posts de sucesso; siga o tom. Se algo não estiver claro, pergunte.</p></div>
+    </div>
+    <p class="note">Marcado em vermelho: o papel genérico e as regras que se contradizem ("detalhado" × "conciso"). Entrou o que só quem conhece o negócio sabe.</p>
+    <div class="acc" style="margin-top:18px">
+      <details><summary>Outras técnicas da documentação</summary><div class="body">
+        <p>• Diga o que fazer, não só o que evitar: "responda em parágrafos corridos" em vez de "não use markdown".</p>
+        <p>• Separe partes com tags XML (<code>&lt;contexto&gt;</code>, <code>&lt;exemplo&gt;</code>) quando o pedido misturar instruções e documentos.</p>
+        <p>• Documentos longos no topo, pergunta no fim.</p>
+        <p>• Seja explícito sobre agir: "altere esta função" age; "você poderia sugerir…" só sugere.</p>
+        <p>• Exemplos: relevantes, diversos, de 3 a 5.</p></div></details>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="panel" id="p-esforco" role="tabpanel" aria-labelledby="t-esforco" hidden>
+    <h2>Esforço não é botão de inteligência</h2>
+    <p class="sub">É um sinal de quão fundo o modelo vai e quanto gasta. Escolha um nível para ver quando faz sentido.</p>
+    <div class="levels" id="levels">
+      <button class="lvl" type="button" aria-pressed="false" data-i="0">low</button>
+      <button class="lvl" type="button" aria-pressed="true" data-i="1">medium</button>
+      <button class="lvl" type="button" aria-pressed="false" data-i="2">high</button>
+      <button class="lvl" type="button" aria-pressed="false" data-i="3">xhigh</button>
+      <button class="lvl" type="button" aria-pressed="false" data-i="4">max</button>
+    </div>
+    <div class="card" aria-live="polite">
+      <h3 id="e-t"></h3><p id="e-d"></p>
+      <div class="quote" id="e-x"></div>
+      <div class="meters">
+        <div class="meter"><small>Profundidade</small><div class="gauge"><i id="m1"></i></div></div>
+        <div class="meter"><small>Custo e tempo</small><div class="gauge"><i id="m2"></i></div></div>
+        <div class="meter"><small>Sua participação</small><div class="gauge"><i id="m3"></i></div></div>
+      </div>
+      <p class="note">Os medidores são ilustrativos, não dados da documentação. A ideia de "participação" vem de Thariq (Anthropic), segundo resumos do artigo dele.</p>
+    </div>
+    <div class="acc" style="margin-top:18px">
+      <details open><summary><span class="badge ok">Documentação</span> Cuidados confirmados</summary><div class="body">
+        <p>• Esforço é "um sinal de comportamento, não um orçamento rígido": afeta texto, ferramentas e raciocínio. O único limite rígido é <code>max_tokens</code>.</p>
+        <p>• <code>max</code> pode ser mais lento e caro por pouco ganho em alguns modelos.</p>
+        <p>• Em <code>high</code> ou acima, defina um <code>max_tokens</code> alto.</p>
+        <p>• O padrão varia por modelo (Opus 5.5 e Haiku 5.5: <code>medium</code>; vários outros: <code>high</code>). Confira o seu.</p>
+        <p>• Trocar o esforço entre chamadas pode invalidar o cache de prompt; fontes divergem sobre isso.</p></div></details>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="panel" id="p-errou" role="tabpanel" aria-labelledby="t-errou" hidden>
+    <h2>Errou? Diagnostique antes de subir o esforço</h2>
+    <p class="sub">Escolha o que aconteceu e veja o próximo passo (baseado no blog do Claude Code).</p>
+    <div class="diag" id="diag">
+      <button class="opt" type="button" aria-pressed="false" data-k="a">⏭️ Pulou arquivos, não conferiu, não rodou os testes</button>
+      <button class="opt" type="button" aria-pressed="false" data-k="b">❓ Faltou saber algo sobre o meu caso</button>
+      <button class="opt" type="button" aria-pressed="false" data-k="c">🔁 O contexto está bom e o erro persiste</button>
+    </div>
+    <div class="res" id="res" aria-live="polite"></div>
+  </section>
+
+  <!-- 05 -->
+  <section class="panel" id="p-fontes" role="tabpanel" aria-labelledby="t-fontes" hidden>
+    <h2>Checagem de fatos</h2>
+    <p class="sub">O vídeo citou pessoas e números. Veja o que foi verificado na fonte e o que não foi.</p>
+    <div class="acc">
+      <details open><summary><span class="badge ok">Fonte primária lida</span> Karpathy e o HackerTube</summary><div class="body">
+        <p>O post original descreve a tarefa assim:</p>
+        <div class="quote">"Let's write our own YouTube clone based on whatever videos have been recommended on Hacker News."</div>
+        <p>• Não traz o prompt exato. <b>Não há</b> "por favor, não cometa erros" nem a cordialidade narrada no vídeo.</p>
+        <p>• "Três linhas" não aparece. Ele fez três tarefas à mão (chave de API do Google, servidor, domínio) e trabalhou em conversa com o Claude.</p>
+        <p>• "~2 horas" aparece, de forma ambígua. Modelo: Opus 5.5 em esforço médio como padrão.</p>
+        <p>• Números: 6.454 vídeos, cerca de 40 mil comentários, 2007 a 2026, 150 tópicos.</p></div></details>
+      <details><summary><span class="badge part">Só por resumos</span> Boris Cherny</summary><div class="body">
+        <p>Resumos da imprensa dizem que ele recomenda falar com o Claude como com um colega e focar em três coisas: o objetivo, o esforço e como o modelo vai verificar o trabalho. Em outro fio, ele diz que dar ao Claude um jeito de verificar o próprio trabalho é provavelmente o mais importante.</p><p>O texto completo dos posts não foi lido.</p></div></details>
+      <details><summary><span class="badge part">Só por resumos</span> Thariq</summary><div class="body">
+        <p>No artigo "Using Claude Code: Spending your effort", segundo resumos, subir o esforço compra principalmente mais verificação e teste de casos extremos, e não corrige uma abordagem errada. A analogia da participação vem dele.</p></div></details>
+      <details><summary><span class="badge no">Não confirmado</span> "Prompt de três linhas, pronto em duas horas"</summary><div class="body">
+        <p>A leitura ignora que houve conversa e decisões depois do pedido inicial, e o tempo é autodeclarado.</p></div></details>
+      <details><summary><span class="badge no">Não verificado</span> Karpathy "hoje na Anthropic"</summary><div class="body">
+        <p>O vídeo diz isso. Não confirmei. Omita se for usar.</p></div></details>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="panel" id="p-check" role="tabpanel" aria-labelledby="t-check" hidden>
+    <h2>Checklist antes de enviar</h2>
+    <p class="sub">Marque conforme revisa o seu pedido.</p>
+    <div class="chk" id="chk">
+      <label><input type="checkbox"> O resultado esperado está claro?</label>
+      <label><input type="checkbox"> Dei o contexto que o modelo não tem (público, restrições, finalidade)?</label>
+      <label><input type="checkbox"> Há um exemplo do que é bom?</label>
+      <label><input type="checkbox"> Alguma instrução contradiz outra (detalhado × curto)?</label>
+      <label><input type="checkbox"> Troquei "nunca/sempre/CRÍTICO" por instrução normal com motivo?</label>
+      <label><input type="checkbox"> Usei o esforço padrão, com motivo para mudar?</label>
+      <label><input type="checkbox"> Um colega leria isto e entenderia o que fazer?</label>
+    </div>
+    <div class="bar"><i id="bar"></i></div>
+    <p class="note" id="barT">0 de 7</p>
+    <div class="card" style="margin-top:18px"><h3>O prompt ficou simples. O critério ficou mais importante.</h3>
+      <p>Pedido curto só funciona para quem sabe o que é um bom resultado. O ativo é o seu histórico, os seus dados e o seu jeito de conferir o trabalho.</p></div>
+    <h2 style="margin-top:34px;font-size:24px">Fontes</h2>
+    <ul class="src">
+      <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/be-clear-and-direct" target="_blank" rel="noopener">Documentação Claude: Prompting best practices</a></li>
+      <li><a href="https://platform.claude.com/docs/en/build-with-claude/effort" target="_blank" rel="noopener">Documentação Claude: Effort</a></li>
+      <li><a href="https://www.claude.com/blog/claude-model-and-effort-level-in-claude-code" target="_blank" rel="noopener">Blog Claude: Choosing a model and effort level in Claude Code</a></li>
+      <li><a href="https://karpathy.bearblog.dev/hacker-tube/" target="_blank" rel="noopener">Karpathy: HackerTube (primária)</a></li>
+      <li><a href="https://x.com/trq212/status/2103576349499855160" target="_blank" rel="noopener">Thariq: Spending your effort (lido por resumos)</a></li>
+    </ul>
+  </section>
+  </main>
+  <footer>Busca não sistemática, feita em um dia (nov/2026). A documentação muda por modelo: confirme a versão atual.</footer>
+</div>
+
+<script>
+/* ---------- rede neural animada (canvas) ---------- */
+(function(){
+  var c=document.getElementById("net"),x=c.getContext("2d"),W,H,P=[],reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var cols=["53,182,95","235,145,54","132,206,157"];
+  function size(){W=c.width=innerWidth;H=c.height=innerHeight;var n=Math.min(70,Math.floor(W*H/22000));P=[];
+    for(var i=0;i<n;i++)P.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.6+.8,c:cols[i%3]});}
+  function draw(){x.clearRect(0,0,W,H);
+    for(var i=0;i<P.length;i++){var a=P[i];
+      for(var j=i+1;j<P.length;j++){var b=P[j],dx=a.x-b.x,dy=a.y-b.y,d=Math.sqrt(dx*dx+dy*dy);
+        if(d<140){x.strokeStyle="rgba("+a.c+","+(.22*(1-d/140))+")";x.lineWidth=1;x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke();}}
+      x.fillStyle="rgba("+a.c+",.9)";x.beginPath();x.arc(a.x,a.y,a.r,0,6.283);x.fill();
+      if(!reduce){a.x+=a.vx;a.y+=a.vy;if(a.x<0||a.x>W)a.vx*=-1;if(a.y<0||a.y>H)a.vy*=-1;}}
+    if(!reduce)requestAnimationFrame(draw);}
+  size();draw();addEventListener("resize",function(){size();if(reduce)draw();});
+})();
+
+/* ---------- abas ---------- */
+(function(){
+  var tabs=[].slice.call(document.querySelectorAll(".tab"));
+  function show(t,foco){
+    tabs.forEach(function(b){var on=b===t;b.setAttribute("aria-selected",on);b.tabIndex=on?0:-1;
+      var p=document.getElementById(b.getAttribute("aria-controls"));p.classList.toggle("on",on);p.hidden=!on;});
+    if(foco)t.focus();
+    try{history.replaceState(null,"","#"+t.id.slice(2));}catch(e){}
+    t.scrollIntoView({block:"nearest",inline:"center",behavior:"smooth"});
+    var h=document.querySelector(".tabs");window.scrollTo({top:Math.max(0,h.offsetTop-4),behavior:"smooth"});
+  }
+  tabs.forEach(function(b,i){
+    b.addEventListener("click",function(){show(b)});
+    b.addEventListener("keydown",function(e){
+      var k=e.key,n=null;
+      if(k==="ArrowRight")n=tabs[(i+1)%tabs.length];else if(k==="ArrowLeft")n=tabs[(i-1+tabs.length)%tabs.length];
+      else if(k==="Home")n=tabs[0];else if(k==="End")n=tabs[tabs.length-1];
+      if(n){e.preventDefault();show(n,true);}
+    });
+  });
+  var h=location.hash.slice(1),ini=document.getElementById("t-"+h);if(ini)show(ini);
+})();
+
+/* ---------- fórmula animada ---------- */
+(function(){
+  var ps=[].slice.call(document.querySelectorAll(".piece")),tm=[];
+  function limpar(){tm.forEach(clearTimeout);tm=[];}
+  document.getElementById("montar").addEventListener("click",function(){
+    limpar();ps.forEach(function(p){p.classList.remove("show")});
+    ps.forEach(function(p,i){tm.push(setTimeout(function(){p.classList.add("show")},i*650));});
+  });
+  document.getElementById("zerar").addEventListener("click",function(){limpar();ps.forEach(function(p){p.classList.remove("show")});});
+  ps.forEach(function(p){p.classList.add("show")}); /* começa completo */
+})();
+
+/* ---------- esforço ---------- */
+(function(){
+  var D=[
+    {t:"low",d:"Tarefa simples, alto volume ou subagentes, quando você revisa cada resposta.",x:"\"Me dê 12 opções de assunto para este e-mail.\"",m:[18,15,95]},
+    {t:"medium",d:"O dia a dia, quando você sabe o que quer e a tarefa está bem especificada. É o padrão em alguns modelos.",x:"\"Transforme esta reunião em resumo e lista de tarefas por pessoa.\"",m:[40,35,70]},
+    {t:"high",d:"Quando conferir é parte importante do trabalho: raciocínio complexo e dados que precisam bater.",x:"\"Monte o relatório do mês e confira se os números batem.\"",m:[62,58,45]},
+    {t:"xhigh",d:"Trabalho longo, com muitas partes e várias fontes, deixado rodando sozinho. Exceção, porque custa caro.",x:"\"Compare as faturas dos últimos 12 meses com o extrato e marque as que não batem.\"",m:[82,80,25]},
+    {t:"max",d:"Problema difícil, sem a sua participação, em que o custo é secundário. Em alguns modelos o ganho sobre xhigh é pequeno.",x:"\"Encontre tudo neste contrato que pode me custar dinheiro.\"",m:[100,100,10]}
+  ];
+  var bs=[].slice.call(document.querySelectorAll(".lvl"));
+  function set(i){var d=D[i];
+    bs.forEach(function(b,k){b.setAttribute("aria-pressed",k===i)});
+    document.getElementById("e-t").textContent="Nível: "+d.t;
+    document.getElementById("e-d").textContent=d.d;
+    document.getElementById("e-x").textContent=d.x;
+    ["m1","m2","m3"].forEach(function(id,k){document.getElementById(id).style.width=d.m[k]+"%"});}
+  bs.forEach(function(b){b.addEventListener("click",function(){set(+b.dataset.i)})});
+  set(1);
+})();
+
+/* ---------- diagnóstico ---------- */
+(function(){
+  var R={
+    a:["Suba o esforço","O modelo tentou menos do que a tarefa pedia: pulou arquivos, não testou, não revisou. Aumentar o esforço compra justamente mais verificação."],
+    b:["Melhore o contexto","Se faltou informação, o problema está antes do botão. Descreva o público, as restrições, o objetivo e anexe um exemplo bom. Pergunte também: \"Se algo não estiver claro, pergunte antes de começar\"."],
+    c:["Considere um modelo maior","Se o contexto está bom e o erro continua, o blog do Claude Code sugere trocar para um modelo mais capaz, não subir o esforço. O modelo define o quão capaz; o esforço, o quão minucioso."]
+  };
+  var bs=[].slice.call(document.querySelectorAll(".opt")),out=document.getElementById("res");
+  bs.forEach(function(b){b.addEventListener("click",function(){
+    bs.forEach(function(o){o.setAttribute("aria-pressed",o===b)});
+    var r=R[b.dataset.k];out.innerHTML="";var c=document.createElement("div");c.className="card";
+    var h=document.createElement("h3");h.textContent="→ "+r[0];var p=document.createElement("p");p.textContent=r[1];c.appendChild(h);c.appendChild(p);out.appendChild(c);
+  });});
+})();
+
+/* ---------- checklist ---------- */
+(function(){
+  var cs=[].slice.call(document.querySelectorAll("#chk input")),bar=document.getElementById("bar"),t=document.getElementById("barT");
+  var K="psm_check";
+  try{var s=JSON.parse(localStorage.getItem(K)||"[]");cs.forEach(function(c,i){c.checked=!!s[i]});}catch(e){}
+  function up(){var n=cs.filter(function(c){return c.checked}).length;bar.style.width=(n/cs.length*100)+"%";
+    t.textContent=n===cs.length?"7 de 7: pronto para enviar!":n+" de "+cs.length;
+    try{localStorage.setItem(K,JSON.stringify(cs.map(function(c){return c.checked})));}catch(e){}}
+  cs.forEach(function(c){c.addEventListener("change",up)});up();
+})();
+</script>
+</body>
+</html>
